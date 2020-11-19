@@ -49,7 +49,9 @@ def Dinkelbach(DinkelInit,
                bandwidth_sub,
                EffPower,
                PowUserCir,
-               PowPScir):
+               PowPScir,
+               Pmax,
+               PerMax):
     FlagDinkel = True
     PowerOpt = PowerInit
     PeriodOpt = PeriodInit
@@ -57,7 +59,6 @@ def Dinkelbach(DinkelInit,
     DinkelOpt = DinkelInit
     DinkelList = [DinkelInit]
     while (FlagDinkel):
-        print('DinkelOpt: %f' %DinkelOpt)
         print('PowerOpt: %f' %PowerOpt)
         print('PeriodOpt: %f' %PeriodOpt)
         # print('BinaryMatrixOpt:')
@@ -72,6 +73,8 @@ def Dinkelbach(DinkelInit,
                                                                           EffPower,
                                                                           PowUserCir,
                                                                           PowPScir,
+                                                                          Pmax,
+                                                                          PerMax,
                                                                           DinkelOpt)
         # import ipdb; ipdb.set_trace()
         ObjectiveOpt = ObjectiveList[-1]
@@ -99,7 +102,7 @@ def Dinkelbach(DinkelInit,
                             PowUserCir,
                             PowPScir)
             DinkelOpt = SR/energy
-            # print('DinkelOpt: ', DinkelOpt)
+            print('DinkelOpt: ', DinkelOpt)
             DinkelList.append(DinkelOpt)
     return DinkelList
 
@@ -107,7 +110,7 @@ if __name__ == "__main__":
     noise=10**((-174/10)-3)
     bandwidth_sub=78*10**3
     EffPower=0.7
-    PowUserCir=10**-6
+    PowUserCir=10**-4 # 10**-7
     PowPScir=10**(-3/10)*0.001 
     
     def GetBinaryMatrixInit(no_users,no_subcarriers):
@@ -132,15 +135,17 @@ if __name__ == "__main__":
                                  [19,20,21,22,23,24]])
     """
     
-    PathPS = "../Channels/ChannelSet/OFDMA/PS_Users/frame_1.csv"
+    PathPS = "../Channels/ChannelSet/OFDMA/PS_Users/frame_11.csv"
     channel_PS_users = np.array([np.genfromtxt(PathPS, delimiter=',')]).T    
-    PathAP = "../Channels/ChannelSet/OFDMA/AP_Users/frame_1.csv"
+    PathAP = "../Channels/ChannelSet/OFDMA/AP_Users/frame_11.csv"
     channel_AP_users = np.genfromtxt(PathAP, delimiter=',')
 
     power = 0.5 # 0.9999
     per = 0.5 # 0.9999
     start_time = time.time()
     DinkelInit = 10
+    Pmax = 1 # 3
+    PerMax = 1
     DinkelList = Dinkelbach(DinkelInit,
                             power,
                             per,
@@ -151,7 +156,9 @@ if __name__ == "__main__":
                             bandwidth_sub,
                             EffPower,
                             PowUserCir,
-                            PowPScir)
+                            PowPScir,
+                            Pmax,
+                            PerMax)
     total_time = time.time() - start_time
     # print('DinkelList:')
     # print(DinkelList)

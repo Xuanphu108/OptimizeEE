@@ -5,9 +5,6 @@ import matplotlib as mpl
 import time
 from BisectionSearch import BisectionSearch
 
-def GenInit():
-    return None
-
 def CheckInit(BinaryMatrixInit, 
               PowerInit, 
               PeriodInit,
@@ -58,8 +55,6 @@ def ResourceAllocation(power,
     RateMatrix = (1-per)*epsilon*np.log(1+np.multiply((EffPower*power*per*PS_users/(1-per)-PowUserCir),channel))
     X2_sum = (1-per)*np.sum(np.multiply((EffPower*power*per*PS_users/(1-per)-PowUserCir),BinaryMatrix))
     SumMatObj = np.sum(RateMatrix) - dinkel*(X1 + X2_sum)
-    # if (SumMatObj == 0.0):
-    #     import ipdb; ipdb.set_trace()
     return BinaryMatrix, SumMatObj
 
 def Alternating(PowerInit,
@@ -72,6 +67,8 @@ def Alternating(PowerInit,
                 EffPower,
                 PowUserCir,
                 PowPScir,
+                Pmax,
+                PerMax,
                 dinkel):
     ObjInit = BisectionSearch(channel_PS_users,
                               channel_AP_users, 
@@ -82,6 +79,18 @@ def Alternating(PowerInit,
                               PowUserCir,
                               PowPScir,
                               dinkel)
+    PS_users = channel_PS_users
+    channel = channel_AP_users/(bandwidth_sub*noise)
+    if ((1+np.multiply((EffPower*PowerInit*PeriodInit*PS_users/(1-PeriodInit)-PowUserCir),channel)) > 0).all():
+        print('Strating points is GOOD!')
+    else:
+        print('Strating points is BAD!')
+        PeriodInit, LowerBound = ObjInit.PeriodInit(Pmax, PerMax)
+        PowerInitList = np.arange(LowerBound, Pmax, 1/100000)
+        # import ipdb; ipdb.set_trace()
+        PowerInit = PowerInitList[int(len(PowerInitList)/2)]
+
+    
     ObjectiveInit = ObjInit.Objective(PowerInit, PeriodInit)
     
     i = 1
@@ -111,10 +120,10 @@ def Alternating(PowerInit,
                               PowUserCir,
                               PowPScir,
                               dinkel)
-        PowerOpt, ObjectiveOpt_2 = obj.PowerSearch(PeriodOpt, PowerOpt, i)
-        if (PowerOpt < 2.9999):
-            import ipdb; ipdb.set_trace()
-        PeriodOpt, ObjectiveOpt_3 = obj.PeriodSearch(PowerOpt, PeriodOpt, i) 
+        PowerOpt, ObjectiveOpt_2 = obj.PowerSearch(Pmax, PerMax, PeriodOpt, PowerOpt, i)
+        #if (PowerOpt < 2.9999):
+        #    import ipdb; ipdb.set_trace()
+        PeriodOpt, ObjectiveOpt_3 = obj.PeriodSearch(Pmax, PerMax, PowerOpt, PeriodOpt, i) 
         ObjectiveOpt = obj.Objective(PowerOpt, PeriodOpt)
         ObjectiveList.append(ObjectiveOpt) 
 
