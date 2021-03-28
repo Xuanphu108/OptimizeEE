@@ -6,99 +6,97 @@ import time
 import natsort
 import os
 from BisectionSearch import BisectionSearch
-from Alternating import Alternating
-from Alternating import AlternatingSumRate, AlternatingFixedPeriod
+from Alternating import alterAlgorithm, alterSumRate, alterFixedPeriod
 
+def calcSumRate(power,
+                per,
+                binaryMatrix,
+                channelPsUsers,
+                channelApUsers,
+                noise,
+                subBandwidth,
+                effPower,
+                powUserCir):
+    epsilon = subBandwidth/(np.log(2))
+    psUsers = channelPsUsers
+    apUsers = np.multiply(channelApUsers,binaryMatrix)
+    channel = apUsers/(subBandwidth*noise)
+    sumRate = (1-per)*epsilon*np.log(1+np.multiply((effPower*power*per*psUsers/(1-per)-powUserCir),channel))
+    sumRate = np.sum(sumRate)
+    return sumRate
 
-def SumRate(power,
-            per,
-            BinaryMatrix,
-            channel_PS_users,
-            channel_AP_users,
-            noise,
-            bandwidth_sub,
-            EffPower,
-            PowUserCir):
-    epsilon = bandwidth_sub/(np.log(2))
-    PS_users = channel_PS_users
-    AP_users = np.multiply(channel_AP_users,BinaryMatrix)
-    channel = AP_users/(bandwidth_sub*noise)
-    SumRate = (1-per)*epsilon*np.log(1+np.multiply((EffPower*power*per*PS_users/(1-per)-PowUserCir),channel))
-    SumRate = np.sum(SumRate)
-    return SumRate
-
-def Energy(power,
-           per,
-           BinaryMatrix,
-           channel_PS_users,
-           channel_AP_users,
-           noise,
-           bandwidth_sub,
-           EffPower,
-           PowUserCir,
-           PowPScir):
-    PS_users = channel_PS_users
-    X1 = per*(power-EffPower*power*np.sum(PS_users)+PowPScir)
-    X2 = (1-per)*np.sum(np.multiply((EffPower*power*per*PS_users/(1-per)-PowUserCir),BinaryMatrix))
-    energy = X1 + X2
+def calcEnergy(power,
+               per,
+               binaryMatrix,
+               channelPsUsers,
+               channelApUsers,
+               noise,
+               subBandwidth,
+               effPower,
+               powUserCir,
+               powPsCir):
+    psUsers = channelPsUsers
+    temp1 = per*(power-effPower*power*np.sum(psUsers)+powPsCir)
+    temp2 = (1-per)*np.sum(np.multiply((effPower*power*per*psUsers/(1-per)-powUserCir),binaryMatrix))
+    energy = temp1 + temp2
     return energy
 
 def Dinkelbach(DinkelInit,
                PowerInit,
                PeriodInit,
-               BinaryMatrixInit,
-               channel_PS_users,
-               channel_AP_users,
+               binaryMatrixInit,
+               channelPsUsers,
+               channelApUsers,
                noise,
-               bandwidth_sub,
-               EffPower,
-               PowUserCir,
-               PowPScir,
-               Pmax,
-               PerMax):
+               subBandwidth,
+               effPower,
+               powUserCir,
+               powPsCir,
+               pMax,
+               perMax):
     FlagDinkel = True
     PowerOpt = PowerInit
     PeriodOpt = PeriodInit
-    BinaryMatrixOpt = BinaryMatrixInit
+    binaryMatrixOpt = binaryMatrixInit
     DinkelOpt = DinkelInit
     DinkelList = [DinkelInit]
     while (FlagDinkel):
         print('PowerOpt: %f' %PowerOpt)
         print('PeriodOpt: %f' %PeriodOpt)
-        # print('BinaryMatrixOpt:')
-        # print(BinaryMatrixOpt)
-        BinaryMatrixOpt, PowerOpt, PeriodOpt, ObjectiveList = Alternating(PowerOpt,
-                                                                          PeriodOpt,
-                                                                          BinaryMatrixOpt,
-                                                                          channel_PS_users,
-                                                                          channel_AP_users,
-                                                                          noise,
-                                                                          bandwidth_sub,
-                                                                          EffPower,
-                                                                          PowUserCir,
-                                                                          PowPScir,
-                                                                          Pmax,
-                                                                          PerMax,
-                                                                          DinkelOpt)
-        SR = SumRate(PowerOpt,
-                     PeriodOpt,
-                     BinaryMatrixOpt,
-                     channel_PS_users,
-                     channel_AP_users,
-                     noise,
-                     bandwidth_sub,
-                     EffPower,
-                     PowUserCir)
-        energy = Energy(PowerOpt,
-                        PeriodOpt,
-                        BinaryMatrixOpt,
-                        channel_PS_users,
-                        channel_AP_users,
-                        noise,
-                        bandwidth_sub,
-                        EffPower,
-                        PowUserCir,
-                        PowPScir)
+        # print('binaryMatrixOpt:')
+        # print(binaryMatrixOpt)
+        binaryMatrixOpt, PowerOpt, PeriodOpt, ObjectiveList = alterAlgorithm(PowerOpt,
+                                                                             PeriodOpt,
+                                                                             binaryMatrixOpt,
+                                                                             channelPsUsers,
+                                                                             channelApUsers,
+                                                                             noise,
+                                                                             subBandwidth,
+                                                                             effPower,
+                                                                             powUserCir,
+                                                                             powPsCir,
+                                                                             pMax,
+                                                                             perMax,
+                                                                             DinkelOpt)
+        SR = calcSumRate(PowerOpt,
+                         PeriodOpt,
+                         binaryMatrixOpt,
+                         channelPsUsers,
+                         channelApUsers,
+                         noise,
+                         subBandwidth,
+                         effPower,
+                         powUserCir)
+        energy = calcEnergy(PowerOpt,
+                            PeriodOpt,
+                            binaryMatrixOpt,
+                            channelPsUsers,
+                            channelApUsers,
+                            noise,
+                            subBandwidth,
+                            effPower,
+                            powUserCir,
+                            powPsCir)
         # import ipdb; ipdb.set_trace()
         ObjectiveOpt = ObjectiveList[-1]
         print('ObjectiveOpt: %f' %ObjectiveOpt)
@@ -116,63 +114,63 @@ def Dinkelbach(DinkelInit,
 def DinkelbachFixedPeriod(DinkelInit,
                           PowerInit,
                           PeriodInit,
-                          BinaryMatrixInit,
-                          channel_PS_users,
-                          channel_AP_users,
+                          binaryMatrixInit,
+                          channelPsUsers,
+                          channelApUsers,
                           noise,
-                          bandwidth_sub,
-                          EffPower,
-                          PowUserCir,
-                          PowPScir,
-                          Pmax,
-                          PerMax):
-    print('P_MAX!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!: ', Pmax)
+                          subBandwidth,
+                          effPower,
+                          powUserCir,
+                          powPsCir,
+                          pMax,
+                          perMax):
+    print('P_MAX!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!: ', pMax)
     FlagDinkel = True
     PowerOpt = PowerInit
-    BinaryMatrixOpt = BinaryMatrixInit
+    binaryMatrixOpt = binaryMatrixInit
     DinkelOpt = DinkelInit
     DinkelList = [DinkelInit]
     while (FlagDinkel):
         print('PowerOpt: %f' %PowerOpt)
-        # print('BinaryMatrixOpt:')
-        # print(BinaryMatrixOpt)
+        # print('binaryMatrixOpt:')
+        # print(binaryMatrixOpt)
         result = AlternatingFixedPeriod(PowerOpt,
                                         PeriodInit,
-                                        BinaryMatrixOpt,
-                                        channel_PS_users,
-                                        channel_AP_users,
+                                        binaryMatrixOpt,
+                                        channelPsUsers,
+                                        channelApUsers,
                                         noise,
-                                        bandwidth_sub,
-                                        EffPower,
-                                        PowUserCir,
-                                        PowPScir,
-                                        Pmax,
-                                        PerMax,
+                                        subBandwidth,
+                                        effPower,
+                                        powUserCir,
+                                        powPsCir,
+                                        pMax,
+                                        perMax,
                                         DinkelOpt)
-        # BinaryMatrixOpt, PowerOpt, ObjectiveList
+        # binaryMatrixOpt, PowerOpt, ObjectiveList
         if (result != None):
-            BinaryMatrixOpt = result[0]
+            binaryMatrixOpt = result[0]
             PowerOpt = result[1] 
             ObjectiveList = result[2]
-            SR = SumRate(PowerOpt,
+            SR = calcSumRate(PowerOpt,
                          PeriodInit,
-                         BinaryMatrixOpt,
-                         channel_PS_users,
-                         channel_AP_users,
+                         binaryMatrixOpt,
+                         channelPsUsers,
+                         channelApUsers,
                          noise,
-                         bandwidth_sub,
-                         EffPower,
-                         PowUserCir)
-            energy = Energy(PowerOpt,
+                         subBandwidth,
+                         effPower,
+                         powUserCir)
+            energy = calcEnergy(PowerOpt,
                             PeriodInit,
-                            BinaryMatrixOpt,
-                            channel_PS_users,
-                            channel_AP_users,
+                            binaryMatrixOpt,
+                            channelPsUsers,
+                            channelApUsers,
                             noise,
-                            bandwidth_sub,
-                            EffPower,
-                            PowUserCir,
-                            PowPScir)
+                            subBandwidth,
+                            effPower,
+                            powUserCir,
+                            powPsCir)
             ObjectiveOpt = ObjectiveList[-1]
             print('ObjectiveOpt: %f' %ObjectiveOpt)
             if (ObjectiveOpt < 10**(-1)):
@@ -191,56 +189,56 @@ def DinkelbachFixedPeriod(DinkelInit,
 def DinkelbachFixedPower(DinkelInit,
                          PowerInit,
                          PeriodInit,
-                         BinaryMatrixInit,
-                         channel_PS_users,
-                         channel_AP_users,
+                         binaryMatrixInit,
+                         channelPsUsers,
+                         channelApUsers,
                          noise,
-                         bandwidth_sub,
-                         EffPower,
-                         PowUserCir,
-                         PowPScir,
-                         PerMax):
+                         subBandwidth,
+                         effPower,
+                         powUserCir,
+                         powPsCir,
+                         perMax):
     FlagDinkel = True
     PeriodOpt = PeriodInit
-    BinaryMatrixOpt = BinaryMatrixInit
+    binaryMatrixOpt = binaryMatrixInit
     DinkelOpt = DinkelInit
     DinkelList = [DinkelInit]
     while (FlagDinkel):
         print('PeriodOpt: %f' %PeriodOpt)
-        # print('BinaryMatrixOpt:')
-        # print(BinaryMatrixOpt)
-        BinaryMatrixOpt, PeriodOpt, ObjectiveList = AlternatingSumRate(PowerInit,
+        # print('binaryMatrixOpt:')
+        # print(binaryMatrixOpt)
+        binaryMatrixOpt, PeriodOpt, ObjectiveList = AlternatingcalcSumRate(PowerInit,
                                                                        PeriodOpt,
-                                                                       BinaryMatrixOpt,
-                                                                       channel_PS_users,
-                                                                       channel_AP_users,
+                                                                       binaryMatrixOpt,
+                                                                       channelPsUsers,
+                                                                       channelApUsers,
                                                                        noise,
-                                                                       bandwidth_sub,
-                                                                       EffPower,
-                                                                       PowUserCir,
-                                                                       PowPScir,
-                                                                       Pmax,
-                                                                       PerMax,
+                                                                       subBandwidth,
+                                                                       effPower,
+                                                                       powUserCir,
+                                                                       powPsCir,
+                                                                       pMax,
+                                                                       perMax,
                                                                        DinkelOpt)
-        SR = SumRate(PowerInit,
+        SR = calcSumRate(PowerInit,
                      PeriodOpt,
-                     BinaryMatrixOpt,
-                     channel_PS_users,
-                     channel_AP_users,
+                     binaryMatrixOpt,
+                     channelPsUsers,
+                     channelApUsers,
                      noise,
-                     bandwidth_sub,
-                     EffPower,
-                     PowUserCir)
-        energy = Energy(PowerInit,
+                     subBandwidth,
+                     effPower,
+                     powUserCir)
+        energy = calcEnergy(PowerInit,
                         PeriodOpt,
-                        BinaryMatrixOpt,
-                        channel_PS_users,
-                        channel_AP_users,
+                        binaryMatrixOpt,
+                        channelPsUsers,
+                        channelApUsers,
                         noise,
-                        bandwidth_sub,
-                        EffPower,
-                        PowUserCir,
-                        PowPScir)
+                        subBandwidth,
+                        effPower,
+                        powUserCir,
+                        powPsCir)
         # import ipdb; ipdb.set_trace()
         ObjectiveOpt = ObjectiveList[-1]
         print('ObjectiveOpt: %f' %ObjectiveOpt)
@@ -257,47 +255,47 @@ def DinkelbachFixedPower(DinkelInit,
 
 if __name__ == "__main__":
     noise=10**((-174/10)-3)
-    bandwidth_sub=78*10**3
-    EffPower=0.7
-    PowUserCir=10**-7 # 10**-8
-    PowPScir=10**(-3/10)*0.001 
+    subBandwidth=78*10**3
+    effPower=0.7
+    powUserCir=10**-7 # 10**-8
+    powPsCir=10**(-3/10)*0.001 
     
-    def GetBinaryMatrixInit(no_users,no_subcarriers):
-        BinaryMatrix = np.zeros((no_users,no_subcarriers))
+    def GetbinaryMatrixInit(no_users,no_subcarriers):
+        binaryMatrix = np.zeros((no_users,no_subcarriers))
         for i in range(no_users):
             for j in range(no_subcarriers):
                 if i==j:
-                    BinaryMatrix[i,j] = 1
+                    binaryMatrix[i,j] = 1
                 else:
-                    BinaryMatrix[i,j] =0
-        return BinaryMatrix
-    BinaryMatrix = GetBinaryMatrixInit(5,64)
+                    binaryMatrix[i,j] =0
+        return binaryMatrix
+    binaryMatrix = GetbinaryMatrixInit(5,64)
     """
-    BinaryMatrix = np.array([[1, 1, 0, 0, 0, 0], 
+    binaryMatrix = np.array([[1, 1, 0, 0, 0, 0], 
                              [0, 0, 1, 0, 0, 0], 
                              [0, 0, 0, 1, 0, 1], 
                              [0, 0, 0, 0, 1, 0]])
-    channel_PS_users = np.array([[1,2,3,4]]).T
-    channel_AP_users = np.array([[1,2,3,4,5,6],
+    channelPsUsers = np.array([[1,2,3,4]]).T
+    channelApUsers = np.array([[1,2,3,4,5,6],
                                  [7,8,9,10,11,12],
                                  [13,14,15,16,17,18],
                                  [19,20,21,22,23,24]])
     """
     
     PathPS = "../Channels/ChannelSet/OFDMA/PS_Users/frame_3.csv"
-    channel_PS_users = np.array([np.genfromtxt(PathPS, delimiter=',')]).T    
+    channelPsUsers = np.array([np.genfromtxt(PathPS, delimiter=',')]).T    
     PathAP = "../Channels/ChannelSet/OFDMA/AP_Users/frame_3.csv"
-    channel_AP_users = np.genfromtxt(PathAP, delimiter=',')
+    channelApUsers = np.genfromtxt(PathAP, delimiter=',')
 
     power = 0.99999 # 0.5
     per = 0.99999 # 0.5
 
     start_time = time.time()
     DinkelInit = 10
-    Pmax = 1
-    PerMax = 1
+    pMax = 1
+    perMax = 1
 
-    PmaxList = [0.1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 40]
+    pMaxList = [0.1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 40]
     EE_Din_List = []
     PowerOpt_List = []
     PeriodOpt_List = []
@@ -309,64 +307,64 @@ if __name__ == "__main__":
 
     EE_FixedPower_List = []
 
-    EE_Din_List_Average = np.zeros([1,len(PmaxList)])
-    EE_SR_List_Average = np.zeros([1,len(PmaxList)])
-    EE_FixedPeriod_List_Average = np.zeros([1,len(PmaxList)])
-    EE_FixedPower_List_Average = np.zeros([1,len(PmaxList)])
+    EE_Din_List_Average = np.zeros([1,len(pMaxList)])
+    EE_SR_List_Average = np.zeros([1,len(pMaxList)])
+    EE_FixedPeriod_List_Average = np.zeros([1,len(pMaxList)])
+    EE_FixedPower_List_Average = np.zeros([1,len(pMaxList)])
     for i in range(0,1):
         PathPSs = "../Channels/ChannelSet/OFDMA/PS_Users/" 
         PathAPs = "../Channels/ChannelSet/OFDMA/AP_Users/"
         list_file_PSs = os.listdir(PathPSs)
         list_file_APs = os.listdir(PathAPs)
         list_file_order_PSs = natsort.natsorted(list_file_PSs, reverse=False)
-        channel_PS_users = np.array([np.genfromtxt(PathPSs + list_file_order_PSs[11], delimiter=',')]).T
+        channelPsUsers = np.array([np.genfromtxt(PathPSs + list_file_order_PSs[11], delimiter=',')]).T
         list_file_order_APs = natsort.natsorted(list_file_APs, reverse=False)
-        channel_AP_users = np.genfromtxt(PathAPs + list_file_order_APs[11], delimiter=',')
-        for Pmax in PmaxList:
+        channelApUsers = np.genfromtxt(PathAPs + list_file_order_APs[11], delimiter=',')
+        for pMax in pMaxList:
             """
             print('PROPOSED SCHEME')
             EE_Din, PowerOpt, PeriodOpt = Dinkelbach(DinkelInit,
                                                      power,
                                                      per,
-                                                     BinaryMatrix,
-                                                     channel_PS_users,
-                                                     channel_AP_users,
+                                                     binaryMatrix,
+                                                     channelPsUsers,
+                                                     channelApUsers,
                                                      noise,
-                                                     bandwidth_sub,
-                                                     EffPower,
-                                                     PowUserCir,
-                                                     PowPScir,
-                                                     Pmax,
-                                                     PerMax)
+                                                     subBandwidth,
+                                                     effPower,
+                                                     powUserCir,
+                                                     powPsCir,
+                                                     pMax,
+                                                     perMax)
             EE_Din_List.append(EE_Din[-1])
             PowerOpt_List.append(PowerOpt)
             PeriodOpt_List.append(PeriodOpt)
             """
 
             """
-            SR_opt = AlternatingSumRate(Pmax,
+            SR_opt = AlternatingcalcSumRate(pMax,
                                         per,
-                                        BinaryMatrix,
-                                        channel_PS_users,
-                                        channel_AP_users,
+                                        binaryMatrix,
+                                        channelPsUsers,
+                                        channelApUsers,
                                         noise,
-                                        bandwidth_sub,
-                                        EffPower,
-                                        PowUserCir,
-                                        PowPScir,
-                                        Pmax,
-                                        PerMax,
+                                        subBandwidth,
+                                        effPower,
+                                        powUserCir,
+                                        powPsCir,
+                                        pMax,
+                                        perMax,
                                         0)
-            EE = Energy(Pmax,
+            EE = calcEnergy(pMax,
                         SR_opt[1],
-                        BinaryMatrix,
-                        channel_PS_users,
-                        channel_AP_users,
+                        binaryMatrix,
+                        channelPsUsers,
+                        channelApUsers,
                         noise,
-                        bandwidth_sub,
-                        EffPower,
-                        PowUserCir,
-                        PowPScir)
+                        subBandwidth,
+                        effPower,
+                        powUserCir,
+                        powPsCir)
             EE_SR = SR_opt[-1][-1]/EE
             EE_SR_List.append(EE_SR)
             """
@@ -375,16 +373,16 @@ if __name__ == "__main__":
             result_FixedPeriod = DinkelbachFixedPeriod(DinkelInit,
                                                        power,
                                                        0.8, # Fixed period
-                                                       BinaryMatrix,
-                                                       channel_PS_users,
-                                                       channel_AP_users,
+                                                       binaryMatrix,
+                                                       channelPsUsers,
+                                                       channelApUsers,
                                                        noise,
-                                                       bandwidth_sub,
-                                                       EffPower,
-                                                       PowUserCir,
-                                                       PowPScir,
-                                                       Pmax,
-                                                       PerMax)
+                                                       subBandwidth,
+                                                       effPower,
+                                                       powUserCir,
+                                                       powPsCir,
+                                                       pMax,
+                                                       perMax)
             if (result_FixedPeriod != None):
                 EE_FixedPeriod = result_FixedPeriod[0]
                 PowerOpt_FixedPeriod = result_FixedPeriod[-1]
@@ -398,17 +396,17 @@ if __name__ == "__main__":
             """
             print('FIXED POWER SCHEME')
             EE_FixedPower = DinkelbachFixedPower(DinkelInit,
-                                                 Pmax,
+                                                 pMax,
                                                  per,
-                                                 BinaryMatrix,
-                                                 channel_PS_users,
-                                                 channel_AP_users,
+                                                 binaryMatrix,
+                                                 channelPsUsers,
+                                                 channelApUsers,
                                                  noise,
-                                                 bandwidth_sub,
-                                                 EffPower,
-                                                 PowUserCir,
-                                                 PowPScir,
-                                                 PerMax)
+                                                 subBandwidth,
+                                                 effPower,
+                                                 powUserCir,
+                                                 powPsCir,
+                                                 perMax)
             EE_FixedPower_List.append(EE_FixedPower[-1]) 
             """
         """          
