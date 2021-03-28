@@ -21,10 +21,10 @@ def checkInit(initBinaryMatrix,
             print('Binary matrix is not satisfy. Please try again!')
     ###### - Check power - #######
     if (initPower >= 1) or (initPower <= 0):
-        print('Power is not statisfy. Please try again!')
+        print('Power is not satisfy. Please try again!')
     ###### - Check period - #######
     if (initPeriod >= 1) or (initPeriod <= 0):
-        print('Period is not statisfy. Please try again!')
+        print('Period is not satisfy. Please try again!')
 
 def allocateResource(power,  
                      per,

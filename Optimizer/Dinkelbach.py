@@ -42,9 +42,9 @@ def calcEnergy(power,
     return energy
 
 def Dinkelbach(DinkelInit,
-               PowerInit,
+               initPower,
                PeriodInit,
-               binaryMatrixInit,
+               initBinaryMatrix,
                channelPsUsers,
                channelApUsers,
                noise,
@@ -54,20 +54,20 @@ def Dinkelbach(DinkelInit,
                powPsCir,
                pMax,
                perMax):
-    FlagDinkel = True
-    PowerOpt = PowerInit
+    flagDinkel = True
+    optPower = initPower
     PeriodOpt = PeriodInit
-    binaryMatrixOpt = binaryMatrixInit
+    optBinaryMatrix = initBinaryMatrix
     DinkelOpt = DinkelInit
     DinkelList = [DinkelInit]
-    while (FlagDinkel):
-        print('PowerOpt: %f' %PowerOpt)
+    while (flagDinkel):
+        print('optPower: %f' %optPower)
         print('PeriodOpt: %f' %PeriodOpt)
-        # print('binaryMatrixOpt:')
-        # print(binaryMatrixOpt)
-        binaryMatrixOpt, PowerOpt, PeriodOpt, ObjectiveList = alterAlgorithm(PowerOpt,
+        # print('optBinaryMatrix:')
+        # print(optBinaryMatrix)
+        optBinaryMatrix, optPower, PeriodOpt, ObjectiveList = alterAlgorithm(optPower,
                                                                              PeriodOpt,
-                                                                             binaryMatrixOpt,
+                                                                             optBinaryMatrix,
                                                                              channelPsUsers,
                                                                              channelApUsers,
                                                                              noise,
@@ -78,18 +78,18 @@ def Dinkelbach(DinkelInit,
                                                                              pMax,
                                                                              perMax,
                                                                              DinkelOpt)
-        SR = calcSumRate(PowerOpt,
+        SR = calcSumRate(optPower,
                          PeriodOpt,
-                         binaryMatrixOpt,
+                         optBinaryMatrix,
                          channelPsUsers,
                          channelApUsers,
                          noise,
                          subBandwidth,
                          effPower,
                          powUserCir)
-        energy = calcEnergy(PowerOpt,
+        energy = calcEnergy(optPower,
                             PeriodOpt,
-                            binaryMatrixOpt,
+                            optBinaryMatrix,
                             channelPsUsers,
                             channelApUsers,
                             noise,
@@ -101,7 +101,7 @@ def Dinkelbach(DinkelInit,
         ObjectiveOpt = ObjectiveList[-1]
         print('ObjectiveOpt: %f' %ObjectiveOpt)
         if (ObjectiveOpt < 10**(-1)):
-            FlagDinkel = False
+            flagDinkel = False
             DinkelOpt = SR/energy
             print('DinkelOpt: ', DinkelOpt)
             DinkelList.append(DinkelOpt)
@@ -109,12 +109,12 @@ def Dinkelbach(DinkelInit,
             DinkelOpt = SR/energy
             print('DinkelOpt: ', DinkelOpt)
             DinkelList.append(DinkelOpt)
-    return DinkelList, PowerOpt, PeriodOpt
+    return DinkelList, optPower, PeriodOpt
 
 def DinkelbachFixedPeriod(DinkelInit,
-                          PowerInit,
+                          initPower,
                           PeriodInit,
-                          binaryMatrixInit,
+                          initBinaryMatrix,
                           channelPsUsers,
                           channelApUsers,
                           noise,
@@ -125,18 +125,18 @@ def DinkelbachFixedPeriod(DinkelInit,
                           pMax,
                           perMax):
     print('P_MAX!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!: ', pMax)
-    FlagDinkel = True
-    PowerOpt = PowerInit
-    binaryMatrixOpt = binaryMatrixInit
+    flagDinkel = True
+    optPower = initPower
+    optBinaryMatrix = initBinaryMatrix
     DinkelOpt = DinkelInit
     DinkelList = [DinkelInit]
-    while (FlagDinkel):
-        print('PowerOpt: %f' %PowerOpt)
-        # print('binaryMatrixOpt:')
-        # print(binaryMatrixOpt)
-        result = AlternatingFixedPeriod(PowerOpt,
+    while (flagDinkel):
+        print('optPower: %f' %optPower)
+        # print('optBinaryMatrix:')
+        # print(optBinaryMatrix)
+        result = AlternatingFixedPeriod(optPower,
                                         PeriodInit,
-                                        binaryMatrixOpt,
+                                        optBinaryMatrix,
                                         channelPsUsers,
                                         channelApUsers,
                                         noise,
@@ -147,23 +147,23 @@ def DinkelbachFixedPeriod(DinkelInit,
                                         pMax,
                                         perMax,
                                         DinkelOpt)
-        # binaryMatrixOpt, PowerOpt, ObjectiveList
+        # optBinaryMatrix, optPower, ObjectiveList
         if (result != None):
-            binaryMatrixOpt = result[0]
-            PowerOpt = result[1] 
+            optBinaryMatrix = result[0]
+            optPower = result[1] 
             ObjectiveList = result[2]
-            SR = calcSumRate(PowerOpt,
+            SR = calcSumRate(optPower,
                          PeriodInit,
-                         binaryMatrixOpt,
+                         optBinaryMatrix,
                          channelPsUsers,
                          channelApUsers,
                          noise,
                          subBandwidth,
                          effPower,
                          powUserCir)
-            energy = calcEnergy(PowerOpt,
+            energy = calcEnergy(optPower,
                             PeriodInit,
-                            binaryMatrixOpt,
+                            optBinaryMatrix,
                             channelPsUsers,
                             channelApUsers,
                             noise,
@@ -174,7 +174,7 @@ def DinkelbachFixedPeriod(DinkelInit,
             ObjectiveOpt = ObjectiveList[-1]
             print('ObjectiveOpt: %f' %ObjectiveOpt)
             if (ObjectiveOpt < 10**(-1)):
-                FlagDinkel = False
+                flagDinkel = False
                 DinkelOpt = SR/energy
                 print('DinkelOpt: ', DinkelOpt)
                 DinkelList.append(DinkelOpt)
@@ -184,12 +184,12 @@ def DinkelbachFixedPeriod(DinkelInit,
                 DinkelList.append(DinkelOpt)
         else:
             return None
-    return DinkelList, PowerOpt
+    return DinkelList, optPower
 
 def DinkelbachFixedPower(DinkelInit,
-                         PowerInit,
+                         initPower,
                          PeriodInit,
-                         binaryMatrixInit,
+                         initBinaryMatrix,
                          channelPsUsers,
                          channelApUsers,
                          noise,
@@ -198,18 +198,18 @@ def DinkelbachFixedPower(DinkelInit,
                          powUserCir,
                          powPsCir,
                          perMax):
-    FlagDinkel = True
+    flagDinkel = True
     PeriodOpt = PeriodInit
-    binaryMatrixOpt = binaryMatrixInit
+    optBinaryMatrix = initBinaryMatrix
     DinkelOpt = DinkelInit
     DinkelList = [DinkelInit]
-    while (FlagDinkel):
+    while (flagDinkel):
         print('PeriodOpt: %f' %PeriodOpt)
-        # print('binaryMatrixOpt:')
-        # print(binaryMatrixOpt)
-        binaryMatrixOpt, PeriodOpt, ObjectiveList = AlternatingcalcSumRate(PowerInit,
+        # print('optBinaryMatrix:')
+        # print(optBinaryMatrix)
+        optBinaryMatrix, PeriodOpt, ObjectiveList = AlternatingcalcSumRate(initPower,
                                                                        PeriodOpt,
-                                                                       binaryMatrixOpt,
+                                                                       optBinaryMatrix,
                                                                        channelPsUsers,
                                                                        channelApUsers,
                                                                        noise,
@@ -220,18 +220,18 @@ def DinkelbachFixedPower(DinkelInit,
                                                                        pMax,
                                                                        perMax,
                                                                        DinkelOpt)
-        SR = calcSumRate(PowerInit,
+        SR = calcSumRate(initPower,
                      PeriodOpt,
-                     binaryMatrixOpt,
+                     optBinaryMatrix,
                      channelPsUsers,
                      channelApUsers,
                      noise,
                      subBandwidth,
                      effPower,
                      powUserCir)
-        energy = calcEnergy(PowerInit,
+        energy = calcEnergy(initPower,
                         PeriodOpt,
-                        binaryMatrixOpt,
+                        optBinaryMatrix,
                         channelPsUsers,
                         channelApUsers,
                         noise,
@@ -243,7 +243,7 @@ def DinkelbachFixedPower(DinkelInit,
         ObjectiveOpt = ObjectiveList[-1]
         print('ObjectiveOpt: %f' %ObjectiveOpt)
         if (ObjectiveOpt < 10**(-1)):
-            FlagDinkel = False
+            flagDinkel = False
             DinkelOpt = SR/energy
             print('DinkelOpt: ', DinkelOpt)
             DinkelList.append(DinkelOpt)
@@ -260,7 +260,7 @@ if __name__ == "__main__":
     powUserCir=10**-7 # 10**-8
     powPsCir=10**(-3/10)*0.001 
     
-    def GetbinaryMatrixInit(no_users,no_subcarriers):
+    def GetinitBinaryMatrix(no_users,no_subcarriers):
         binaryMatrix = np.zeros((no_users,no_subcarriers))
         for i in range(no_users):
             for j in range(no_subcarriers):
@@ -269,7 +269,7 @@ if __name__ == "__main__":
                 else:
                     binaryMatrix[i,j] =0
         return binaryMatrix
-    binaryMatrix = GetbinaryMatrixInit(5,64)
+    binaryMatrix = GetinitBinaryMatrix(5,64)
     """
     binaryMatrix = np.array([[1, 1, 0, 0, 0, 0], 
                              [0, 0, 1, 0, 0, 0], 
@@ -297,7 +297,7 @@ if __name__ == "__main__":
 
     pMaxList = [0.1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 40]
     EE_Din_List = []
-    PowerOpt_List = []
+    optPower_List = []
     PeriodOpt_List = []
 
     EE_SR_List = []
@@ -323,7 +323,7 @@ if __name__ == "__main__":
         for pMax in pMaxList:
             """
             print('PROPOSED SCHEME')
-            EE_Din, PowerOpt, PeriodOpt = Dinkelbach(DinkelInit,
+            EE_Din, optPower, PeriodOpt = Dinkelbach(DinkelInit,
                                                      power,
                                                      per,
                                                      binaryMatrix,
@@ -337,7 +337,7 @@ if __name__ == "__main__":
                                                      pMax,
                                                      perMax)
             EE_Din_List.append(EE_Din[-1])
-            PowerOpt_List.append(PowerOpt)
+            optPower_List.append(optPower)
             PeriodOpt_List.append(PeriodOpt)
             """
 
@@ -385,9 +385,9 @@ if __name__ == "__main__":
                                                        perMax)
             if (result_FixedPeriod != None):
                 EE_FixedPeriod = result_FixedPeriod[0]
-                PowerOpt_FixedPeriod = result_FixedPeriod[-1]
+                optPower_FixedPeriod = result_FixedPeriod[-1]
                 EE_FixedPeriod_List.append(EE_FixedPeriod[-1])
-                PoweOpt_FixedPeriod_List.append(PowerOpt_FixedPeriod)
+                PoweOpt_FixedPeriod_List.append(optPower_FixedPeriod)
             else:
                 EE_FixedPeriod_List.append(0)
                 PoweOpt_FixedPeriod_List.append(0)
@@ -436,7 +436,7 @@ if __name__ == "__main__":
         
         
     # print('EE_Din_List: ', EE_Din_List_Average)
-    # print('Popt List: ', PowerOpt_List)
+    # print('Popt List: ', optPower_List)
     # print('Period List: ', PeriodOpt_List)
 
     # print('EE_SR_List: ', EE_SR_List_Average/100)
