@@ -6,7 +6,7 @@ import matplotlib as mpl
 import time
 from BisectionSearch import BisectionSearch
 
-def checkInit(initbinaryMatrix, 
+def checkInit(initBinaryMatrix, 
               initPower, 
               initPeriod,
               channelPsUsers,
@@ -16,8 +16,8 @@ def checkInit(initbinaryMatrix,
               effPower,
               powUserCir):
     ###### - Check binary matrix - #######
-    for i in range(0, initbinaryMatrix.shape[1]):
-        if ((initbinaryMatrix[:,i] == 1).sum() > 1):
+    for i in range(0, initBinaryMatrix.shape[1]):
+        if ((initBinaryMatrix[:,i] == 1).sum() > 1):
             print('Binary matrix is not satisfy. Please try again!')
     ###### - Check power - #######
     if (initPower >= 1) or (initPower <= 0):
@@ -40,7 +40,7 @@ def allocateResource(power,
     psUsers = channelPsUsers
     channel = channelApUsers/(subBandwidth*noise)
     if ((1+np.multiply((effPower*power*per*psUsers/(1-per)-powUserCir),channel)) < 0).any():
-        print('FAIL CASE !!!!!!!!!!!!!!!')
+        print('FAILED CASE !!!!!!!!!!!!!!!')
         print(1+np.multiply((effPower*power*per*psUsers/(1-per)-powUserCir),channel))
         import ipdb; ipdb.set_trace()
     rateMatrix = (1-per)*epsilon*np.log(1+np.multiply((effPower*power*per*psUsers/(1-per)-powUserCir),channel))
@@ -58,22 +58,22 @@ def allocateResource(power,
     sumMatObj = np.sum(rateMatrix) - dinkel*(X1 + X2_sum)
     return binaryMatrix, sumMatObj
 
-def Alternating(initPower,
-                initPeriod,
-                binaryMatrixInit,
-                channelPsUsers,
-                channelApUsers,
-                noise,
-                subBandwidth,
-                effPower,
-                powUserCir,
-                powPsCir,
-                pMax,
-                perMax,
-                dinkel):
-    ObjInit = BisectionSearch(channelPsUsers,
+def alterAlgorithm(initPower,
+                   initPeriod,
+                   initBinaryMatrix,
+                   channelPsUsers,
+                   channelApUsers,
+                   noise,
+                   subBandwidth,
+                   effPower,
+                   powUserCir,
+                   powPsCir,
+                   pMax,
+                   perMax,
+                   dinkel):
+    initObj = BisectionSearch(channelPsUsers,
                               channelApUsers, 
-                              binaryMatrixInit,
+                              initBinaryMatrix,
                               noise,
                               subBandwidth,
                               effPower,
@@ -88,32 +88,32 @@ def Alternating(initPower,
             print('Starting points is GOOD!')
         else:
             print('Starting points is BAD!')
-            initPeriod, LowerBound = ObjInit.initPeriod(pMax, perMax)
-            initPowerList = np.arange(LowerBound, pMax, 1/100000000)
+            initPeriod, lowerBound = initObj.initPeriod(pMax, perMax)
+            initPowerList = np.arange(lowerBound, pMax, 1/100000000)
             initPower = initPowerList[int(len(initPowerList)/2)]
     else:
-        print('Starting points not correct!')
+        print('Starting points are not correct!')
         # import ipdb; ipdb.set_trace()
-        initPeriod, LowerBound = ObjInit.initPeriod(pMax, perMax)
-        initPowerList = np.arange(LowerBound, pMax, 1/100000000)
+        initPeriod, lowerBound = initObj.initPeriod(pMax, perMax)
+        initPowerList = np.arange(lowerBound, pMax, 1/100000000)
         initPower = initPowerList[int(len(initPowerList)/2)]
-        print('PowerOpt: ', initPower)
-        print('PeriodOpt: ', initPeriod)
+        print('optPower: ', initPower)
+        print('optPeriod: ', initPeriod)
     
-    ObjectiveInit = ObjInit.Objective(initPower, initPeriod)
+    initObjective = initObj.calcObject(initPower, initPeriod)
     
     i = 1
     flag = True
-    ObjectiveList = [ObjectiveInit]
-    PowerOpt = initPower
-    PeriodOpt = initPeriod
-    binaryMatrixOpt = binaryMatrixInit 
+    objectiveList = [initObjective]
+    optPower = initPower
+    optPeriod = initPeriod
+    optBinaryMatrix = initBinaryMatrix 
     j = 1
     while (flag):
         print('Iteration: ', i)       
         obj = BisectionSearch(channelPsUsers,
                               channelApUsers, 
-                              binaryMatrixOpt,
+                              optBinaryMatrix,
                               noise,
                               subBandwidth,
                               effPower,
@@ -121,14 +121,14 @@ def Alternating(initPower,
                               powPsCir,
                               dinkel)
         # import ipdb; ipdb.set_trace() 
-        PeriodOpt, ObjectiveOpt_2 = obj.PeriodSearch(pMax, perMax, PowerOpt, PeriodOpt, j)  
+        optPeriod, optObjective_2 = obj.searchPeriod(pMax, perMax, optPower, optPeriod, j)  
         
         j += 1
               
-        PowerOpt, ObjectiveOpt_3 = obj.PowerSearch(pMax, perMax, PeriodOpt, PowerOpt, j)
+        optPower, optObjective_3 = obj.searchPower(pMax, perMax, optPeriod, optPower, j)
 
-        binaryMatrixOpt, ObjectiveOpt_1 = allocateResource(PowerOpt, 
-                                                           PeriodOpt,
+        optBinaryMatrix, optObjective_1 = allocateResource(optPower, 
+                                                           optPeriod,
                                                            channelPsUsers,
                                                            channelApUsers,
                                                            noise,
@@ -139,7 +139,7 @@ def Alternating(initPower,
                                                            dinkel)   
         obj = BisectionSearch(channelPsUsers,
                               channelApUsers, 
-                              binaryMatrixOpt,
+                              optBinaryMatrix,
                               noise,
                               subBandwidth,
                               effPower,
@@ -147,38 +147,38 @@ def Alternating(initPower,
                               powPsCir,
                               dinkel) 
                
-        ObjectiveOpt = obj.Objective(PowerOpt, PeriodOpt)
-        ObjectiveList.append(ObjectiveOpt) 
+        optObjective = obj.calcObject(optPower, optPeriod)
+        objectiveList.append(optObjective) 
 
         ######### - Check algorithm - ###########
-        if (ObjectiveList[i] < ObjectiveList[i-1]):
+        if (objectiveList[i] < objectiveList[i-1]):
             print('Algorithm is wrong!')
             break
 
         ######### - Convergence condition - #########
-        if ((ObjectiveList[i]-ObjectiveList[i-1]) < 10**(-1)):
+        if ((objectiveList[i]-objectiveList[i-1]) < 10**(-1)):
             flag = False
         else:
             flag = True
         i += 1
-    return binaryMatrixOpt, PowerOpt, PeriodOpt, ObjectiveList
+    return optBinaryMatrix, optPower, optPeriod, objectiveList
 
-def AlternatingSumRate(initPower,
-                       initPeriod,
-                       binaryMatrixInit,
-                       channelPsUsers,
-                       channelApUsers,
-                       noise,
-                       subBandwidth,
-                       effPower,
-                       powUserCir,
-                       powPsCir,
-                       pMax,
-                       perMax,
-                       dinkel):
-    ObjInit = BisectionSearch(channelPsUsers,
+def alterSumRate(initPower,
+                 initPeriod,
+                 initBinaryMatrix,
+                 channelPsUsers,
+                 channelApUsers,
+                 noise,
+                 subBandwidth,
+                 effPower,
+                 powUserCir,
+                 powPsCir,
+                 pMax,
+                 perMax,
+                 dinkel):
+    initObj = BisectionSearch(channelPsUsers,
                               channelApUsers, 
-                              binaryMatrixInit,
+                              initBinaryMatrix,
                               noise,
                               subBandwidth,
                               effPower,
@@ -188,55 +188,55 @@ def AlternatingSumRate(initPower,
     psUsers = channelPsUsers
     channel = channelApUsers/(subBandwidth*noise)
     if ((1+np.multiply((effPower*initPower*initPeriod*psUsers/(1-initPeriod)-powUserCir),channel)) > 0).all():
-        print('Strating point (period) is GOOD!')
+        print('Starting point (period) is GOOD!')
     else:
-        print('Strating point (period) is BAD!')
-        A_per = 1 - powUserCir*channel
-        B_per = effPower*initPower*np.multiply(psUsers, channel)
-        C_per = (B_per-A_per)
-        C_neg = C_per.clip(max=0)
-        C_pos = C_per.clip(min=0)
+        print('Starting point (period) is BAD!')
+        tempA = 1 - powUserCir*channel
+        tempB = effPower*initPower*np.multiply(psUsers, channel)
+        tempC = (tempB-tempA)
+        negC = tempC.clip(max=0)
+        posC = tempC.clip(min=0)
         delta = 0.000001 # 0.00000000000001
 
-        UpperBound = np.divide(-A_per, C_neg, out = np.zeros_like(-A_per), where=C_neg!=0)
-        UpperBound[UpperBound==0] = +inf
-        UpperBound = np.min(UpperBound)
-        UpperBound = np.minimum(UpperBound, perMax-0.000001)
+        upperBound = np.divide(-tempA, negC, out = np.zeros_like(-tempA), where=negC!=0)
+        upperBound[upperBound==0] = +inf
+        upperBound = np.min(upperBound)
+        upperBound = np.minimum(upperBound, perMax-0.000001)
         
-        LowerBound = np.divide(-A_per, C_pos, out = np.zeros_like(-A_per), where=C_pos!=0)
-        LowerBound = LowerBound.flatten()
-        LowerBound = np.delete(LowerBound, np.where(LowerBound==1))
-        LowerBound = np.max(LowerBound)
-        LowerBound = np.maximum(LowerBound,0.000001)
+        lowerBound = np.divide(-tempA, posC, out = np.zeros_like(-tempA), where=posC!=0)
+        lowerBound = lowerBound.flatten()
+        lowerBound = np.delete(lowerBound, np.where(lowerBound==1))
+        lowerBound = np.max(lowerBound)
+        lowerBound = np.maximum(lowerBound,0.000001)
 
         delta = 0.00000001
-        if (UpperBound - LowerBound) <= delta:
+        if (upperBound - lowerBound) <= delta:
             raise ValueError('Power is not suitable. Please try another!')
         else:
-            initPeriodList = np.arange(LowerBound, UpperBound, 1/100000)
+            initPeriodList = np.arange(lowerBound, upperBound, 1/100000)
             initPeriod = initPeriodList[int(len(initPeriodList)/2)]
         
-    ObjectiveInit = ObjInit.Objective(initPower, initPeriod)
+    initObjective = initObj.calcObject(initPower, initPeriod)
     
     i = 1
     flag = True
-    ObjectiveList = [ObjectiveInit]
-    PeriodOpt = initPeriod
-    binaryMatrixOpt = binaryMatrixInit 
+    objectiveList = [initObjective]
+    optPeriod = initPeriod
+    optBinaryMatrix = initBinaryMatrix 
     while (flag):
         print('Iteration: ', i)
         obj = BisectionSearch(channelPsUsers,
                               channelApUsers, 
-                              binaryMatrixOpt,
+                              optBinaryMatrix,
                               noise,
                               subBandwidth,
                               effPower,
                               powUserCir,
                               powPsCir,
                               dinkel)
-        PeriodOpt, ObjectiveOpt_2 = obj.PeriodSearch(pMax, perMax, initPower, PeriodOpt, i) 
-        binaryMatrixOpt, ObjectiveOpt_1 = allocateResource(initPower, 
-                                                           PeriodOpt,
+        optPeriod, optObjective_2 = obj.searchPeriod(pMax, perMax, initPower, optPeriod, i) 
+        optBinaryMatrix, optObjective_1 = allocateResource(initPower, 
+                                                           optPeriod,
                                                            channelPsUsers,
                                                            channelApUsers,
                                                            noise,
@@ -245,38 +245,38 @@ def AlternatingSumRate(initPower,
                                                            powUserCir,
                                                            powPsCir,
                                                            dinkel)
-        ObjectiveOpt = obj.Objective(initPower, PeriodOpt)
-        ObjectiveList.append(ObjectiveOpt) 
+        optObjective = obj.calcObject(initPower, optPeriod)
+        objectiveList.append(optObjective) 
 
         ######### - Check algorithm - ###########
-        if (ObjectiveList[i] < ObjectiveList[i-1]):
+        if (objectiveList[i] < objectiveList[i-1]):
             print('Algorithm is wrong!')
             break
 
         ######### - Convergence condition - #########
-        if ((ObjectiveList[i]-ObjectiveList[i-1]) < 10**(-1)):
+        if ((objectiveList[i]-objectiveList[i-1]) < 10**(-1)):
             flag = False
         else:
             flag = True
         i += 1
-    return binaryMatrixOpt, PeriodOpt, ObjectiveList
+    return optBinaryMatrix, optPeriod, objectiveList
 
-def AlternatingFixedPeriod(initPower,
-                           initPeriod,
-                           binaryMatrixInit,
-                           channelPsUsers,
-                           channelApUsers,
-                           noise,
-                           subBandwidth,
-                           effPower,
-                           powUserCir,
-                           powPsCir,
-                           pMax,
-                           perMax,
-                           dinkel):
-    ObjInit = BisectionSearch(channelPsUsers,
+def alterFixedPeriod(initPower,
+                     initPeriod,
+                     initBinaryMatrix,
+                     channelPsUsers,
+                     channelApUsers,
+                     noise,
+                     subBandwidth,
+                     effPower,
+                     powUserCir,
+                     powPsCir,
+                     pMax,
+                     perMax,
+                     dinkel):
+    initObj = BisectionSearch(channelPsUsers,
                               channelApUsers, 
-                              binaryMatrixInit,
+                              initBinaryMatrix,
                               noise,
                               subBandwidth,
                               effPower,
@@ -294,28 +294,28 @@ def AlternatingFixedPeriod(initPower,
             B_pow = effPower*np.multiply(psUsers,channel)*initPeriod/(1-initPeriod)
             B_neg = B_pow.clip(max=0)
             B_pos = B_pow.clip(min=0)
-            UpperBound = np.divide(-A_pow, B_neg, out = np.zeros_like(-A_pow), where=B_neg!=0)
-            UpperBound[UpperBound==0] = +inf
-            UpperBound = np.min(UpperBound)
-            UpperBound = np.minimum(UpperBound, pMax)
+            upperBound = np.divide(-A_pow, B_neg, out = np.zeros_like(-A_pow), where=B_neg!=0)
+            upperBound[upperBound==0] = +inf
+            upperBound = np.min(upperBound)
+            upperBound = np.minimum(upperBound, pMax)
 
-            LowerBound = np.divide(-A_pow, B_pos, out=np.zeros_like(-A_pow), where=B_pos!=0)
-            LowerBound = np.max(LowerBound)
-            LowerBound = np.maximum(LowerBound, 0.000000001)
+            lowerBound = np.divide(-A_pow, B_pos, out=np.zeros_like(-A_pow), where=B_pos!=0)
+            lowerBound = np.max(lowerBound)
+            lowerBound = np.maximum(lowerBound, 0.000000001)
             delta = 0.000000001 # 0.00000001
-            if (UpperBound - LowerBound) <= delta:
+            if (upperBound - lowerBound) <= delta:
                 print('Channel fail!!!!!!!!!!!!!!!!!')
                 return None
             else:
-                initPowerList = np.arange(LowerBound, UpperBound, 1/100000)
+                initPowerList = np.arange(lowerBound, upperBound, 1/100000)
                 initPower = initPowerList[int(len(initPowerList)/2)]
     else:
         print('Starting points not correct!')
-        initPeriod, LowerBound = ObjInit.initPeriod(pMax, perMax)
-        initPowerList = np.arange(LowerBound, pMax, 1/100000000)
+        initPeriod, lowerBound = initObj.initPeriod(pMax, perMax)
+        initPowerList = np.arange(lowerBound, pMax, 1/100000000)
         initPower = initPowerList[int(len(initPowerList)/2)]
-        print('PowerOpt: ', initPower)
-        print('PeriodOpt: ', initPeriod)
+        print('optPower: ', initPower)
+        print('optPeriod: ', initPeriod)
 
     """
     if ((1+np.multiply((effPower*initPower*initPeriod*psUsers/(1-initPeriod)-powUserCir),channel)) > 0).all():
@@ -326,38 +326,38 @@ def AlternatingFixedPeriod(initPower,
         B_pow = effPower*np.multiply(psUsers,channel)*initPeriod/(1-initPeriod)
         B_neg = B_pow.clip(max=0)
         B_pos = B_pow.clip(min=0)
-        UpperBound = np.divide(-A_pow, B_neg, out = np.zeros_like(-A_pow), where=B_neg!=0)
-        UpperBound[UpperBound==0] = +inf
-        UpperBound = np.min(UpperBound)
-        UpperBound = np.minimum(UpperBound, pMax)
+        upperBound = np.divide(-A_pow, B_neg, out = np.zeros_like(-A_pow), where=B_neg!=0)
+        upperBound[upperBound==0] = +inf
+        upperBound = np.min(upperBound)
+        upperBound = np.minimum(upperBound, pMax)
 
-        LowerBound = np.divide(-A_pow, B_pos, out=np.zeros_like(-A_pow), where=B_pos!=0)
-        LowerBound = np.max(LowerBound)
-        LowerBound = np.maximum(LowerBound, 0.000000001)
+        lowerBound = np.divide(-A_pow, B_pos, out=np.zeros_like(-A_pow), where=B_pos!=0)
+        lowerBound = np.max(lowerBound)
+        lowerBound = np.maximum(lowerBound, 0.000000001)
         delta = 0.000000001 # 0.00000001
-        if (UpperBound - LowerBound) <= delta:
+        if (upperBound - lowerBound) <= delta:
             print('Channel fail!!!!!!!!!!!!!!!!!')
             return None
         else:
-            initPowerList = np.arange(LowerBound, UpperBound, 1/100000)
+            initPowerList = np.arange(lowerBound, upperBound, 1/100000)
             initPower = initPowerList[int(len(initPowerList)/2)]
     """
 
     # import ipdb; ipdb.set_trace()
-    ObjectiveInit = ObjInit.Objective(initPower, initPeriod)
+    initObjective = initObj.calcObject(initPower, initPeriod)
     
     i = 1
     j = 2
     flag = True
-    ObjectiveList = [ObjectiveInit]
-    PowerOpt = initPower
-    binaryMatrixOpt = binaryMatrixInit 
+    objectiveList = [initObjective]
+    optPower = initPower
+    optBinaryMatrix = initBinaryMatrix 
     while (flag):
         print('Iteration: ', i)
         
         obj = BisectionSearch(channelPsUsers,
                               channelApUsers, 
-                              binaryMatrixOpt,
+                              optBinaryMatrix,
                               noise,
                               subBandwidth,
                               effPower,
@@ -365,8 +365,8 @@ def AlternatingFixedPeriod(initPower,
                               powPsCir,
                               dinkel)
         # import ipdb; ipdb.set_trace()
-        PowerOpt, ObjectiveOpt_2 = obj.PowerSearch(pMax, perMax, initPeriod, PowerOpt, j)
-        binaryMatrixOpt, ObjectiveOpt_1 = allocateResource(PowerOpt, 
+        optPower, optObjective_2 = obj.searchPower(pMax, perMax, initPeriod, optPower, j)
+        optBinaryMatrix, optObjective_1 = allocateResource(optPower, 
                                                            initPeriod,
                                                            channelPsUsers,
                                                            channelApUsers,
@@ -378,28 +378,28 @@ def AlternatingFixedPeriod(initPower,
                                                            dinkel)
         obj = BisectionSearch(channelPsUsers,
                               channelApUsers, 
-                              binaryMatrixOpt,
+                              optBinaryMatrix,
                               noise,
                               subBandwidth,
                               effPower,
                               powUserCir,
                               powPsCir,
                               dinkel)
-        ObjectiveOpt = obj.Objective(PowerOpt, initPeriod)
-        ObjectiveList.append(ObjectiveOpt) 
+        optObjective = obj.calcObject(optPower, initPeriod)
+        objectiveList.append(optObjective) 
 
         ######### - Check algorithm - ###########
-        if (ObjectiveList[i] < ObjectiveList[i-1]):
+        if (objectiveList[i] < objectiveList[i-1]):
             print('Algorithm is wrong!')
             break
 
         ######### - Convergence condition - #########
-        if ((ObjectiveList[i]-ObjectiveList[i-1]) < 10**(-1)):
+        if ((objectiveList[i]-objectiveList[i-1]) < 10**(-1)):
             flag = False
         else:
             flag = True
         i += 1
-    return binaryMatrixOpt, PowerOpt, ObjectiveList
+    return optBinaryMatrix, optPower, objectiveList
 
 
 
@@ -410,16 +410,16 @@ if __name__ == "__main__":
     powUserCir=10**-7 
     powPsCir=10**(-3/10)*0.001 
     
-    def GetbinaryMatrixInit(no_users,no_subcarriers):
-        binaryMatrix = np.zeros((no_users,no_subcarriers))
-        for i in range(no_users):
-            for j in range(no_subcarriers):
+    def getInitBinaryMatrix(noUsers,noSubcarriers):
+        binaryMatrix = np.zeros((noUsers,noSubcarriers))
+        for i in range(noUsers):
+            for j in range(noSubcarriers):
                 if i==j:
                     binaryMatrix[i,j] = 1
                 else:
                     binaryMatrix[i,j] =0
         return binaryMatrix
-    binaryMatrix = GetbinaryMatrixInit(5,64)
+    binaryMatrix = getInitBinaryMatrix(5,64)
     
     PathPS = "../Channels/ChannelSet/OFDMA/PS_Users/frame_11.csv"
     channelPsUsers = np.array([np.genfromtxt(PathPS, delimiter=',')]).T    
@@ -429,23 +429,24 @@ if __name__ == "__main__":
     power = 0.99999 
     per = 0.99999 
     start_time = time.time()
-    DinkelInit = 10
+    initDinkel = 10
     pMax = 100 # 3
     perMax = 1
-    _, _, ObjectiveList = AlternatingSumRate(per,
-                                             binaryMatrix,
-                                             channelPsUsers,
-                                             channelApUsers,
-                                             noise,
-                                             subBandwidth,
-                                             effPower,
-                                             powUserCir,
-                                             powPsCir,
-                                             pMax,
-                                             perMax,
-                                             0)
+    _, _, objectiveList = alterSumRate(power,
+                                       per,
+                                       binaryMatrix,
+                                       channelPsUsers,
+                                       channelApUsers,
+                                       noise,
+                                       subBandwidth,
+                                       effPower,
+                                       powUserCir,
+                                       powPsCir,
+                                       pMax,
+                                       perMax,
+                                       0)
     total_time = time.time() - start_time
-    print('ObjectiveList:')
-    print(ObjectiveList)
+    print('objectiveList:')
+    print(objectiveList)
     print('Optimization time: %f' %total_time)
 
